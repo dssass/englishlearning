@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的英文學習記錄 </title>
+    <style>
+        /* CSS 完全沒有變動，此處省略以保持簡潔 */
+        .tags-input-container { font-size: 0.875rem; color: #64748b; }
+        .tags-container { margin-top: 0.75rem; display: flex; flex-wrap: wrap; gap: 0.5rem; }
+        .tag-badge { background-color: #e0e7ff; color: #4338ca; padding: 0.25rem 0.6rem; border-radius: 9999px; font-size: 0.8rem; font-weight: 500; }
+        .tag-filters { margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e2e8f0; display: flex; flex-wrap: wrap; gap: 0.5rem; }
+        .tag-filter-btn { background-color: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; padding: 0.25rem 0.75rem; border-radius: 8px; cursor: pointer; transition: all 0.2s; }
+        .tag-filter-btn:hover { background-color: #e2e8f0; border-color: #cbd5e1; }
+        .tag-filter-btn.active { background-color: #4f46e5; color: white; border-color: #4f46e5; }
+        .word-item:not(.review-card) { cursor: pointer; }
+        .word-item .details { display: none; margin-top: 0.75rem; }
+        .word-item.is-revealed .details { display: block; }
+        .example:empty { display: none; }
+        .view-toggle { display: flex; justify-content: center; margin-bottom: 1rem; background: #e2e8f0; border-radius: 10px; padding: 0.25rem; }
+        .view-toggle button { flex: 1; padding: 0.5rem 1rem; border: none; background: transparent; cursor: pointer; font-size: 1rem; font-weight: 600; color: #475569; border-radius: 8px; transition: all 0.3s; }
+        .view-toggle button.active { background: white; color: #4f46e5; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); }
+        .review-card .answer { display: none; }
+        .review-card.is-revealed .answer { display: block; }
+        .review-card.is-revealed .btn-show-answer { display: none; }
+        .review-actions { margin-top: 1rem; display: flex; gap: 0.5rem; }
+        .review-actions button { flex: 1; }
+        .btn-forgot { background: linear-gradient(135deg, #f87171, #ef4444); }
+        .btn-remembered { background: linear-gradient(135deg, #4ade80, #22c55e); }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; background: rgba(255, 255, 255, 0.95); border-radius: 20px; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1); overflow: hidden; }
+        .header { background: linear-gradient(135deg, #4f46e5, #7c3aed); color: white; padding: 2rem; text-align: center; }
+        .header h1 { font-size: 2.5rem; margin-bottom: 0.5rem; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3); }
+        .header p { font-size: 1.1rem; opacity: 0.9; }
+        .main-content { padding: 2rem; display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+        .input-section { background: #f8fafc; border-radius: 15px; padding: 1.5rem; border: 2px solid #e2e8f0; }
+        .input-section h2 { color: #1e293b; margin-bottom: 1rem; font-size: 1.5rem; }
+        .form-group { margin-bottom: 1rem; }
+        label { display: block; margin-bottom: 0.5rem; color: #374151; font-weight: 600; }
+        input, textarea, select { width: 100%; padding: 0.75rem; border: 2px solid #d1d5db; border-radius: 8px; font-size: 1rem; transition: border-color 0.3s, box-shadow 0.3s; font-family: inherit; }
+        input:focus, textarea:focus, select:focus { outline: none; border-color: #4f46e5; box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1); }
+        textarea { resize: vertical; min-height: 80px; }
+        .btn { background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.3s; width: 100%; }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); }
+        .btn-icon { background: none; border: none; cursor: pointer; padding: 0.25rem; }
+        .btn-delete { background: linear-gradient(135deg, #ef4444, #dc2626); color: white; border-radius: 6px; padding: 0.25rem 0.5rem; font-size: 0.875rem; margin-left: 0.5rem; }
+        .words-list { background: white; border-radius: 15px; padding: 1.5rem; border: 2px solid #e2e8f0; max-height: 600px; overflow-y: auto; }
+        .words-list h2 { color: #1e293b; margin-bottom: 1rem; font-size: 1.5rem; }
+        .word-item { background: linear-gradient(135deg, #f1f5f9, #e2e8f0); border-radius: 12px; padding: 1rem; margin-bottom: 1rem; border-left: 4px solid #4f46e5; transition: transform 0.2s, box-shadow 0.2s, opacity 0.3s; }
+        .word-item:hover { transform: translateX(5px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); }
+        .word-item.deleting { opacity: 0; transform: translateX(-20px); }
+        .word-header { display: flex; justify-content: space-between; align-items: center; }
+        .word-text-container { display: flex; align-items: center; gap: 0.5rem; }
+        .word-text { font-size: 1.25rem; font-weight: bold; color: #1e293b; }
+        .pos-badge { font-size: 0.75rem; background-color: #4f46e5; color: white; padding: 0.2em 0.6em; border-radius: 10px; font-weight: 500; }
+        .date-text { font-size: 0.875rem; color: #64748b; background: #e2e8f0; padding: 0.25rem 0.5rem; border-radius: 4px; }
+        .meaning { color: #475569; margin-bottom: 0.5rem; font-size: 1rem; }
+        .example { color: #059669; font-style: italic; background: #ecfdf5; padding: 0.5rem; border-radius: 6px; border-left: 3px solid #10b981; }
+        .stats { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: white; padding: 1rem; text-align: center; margin-bottom: 1rem; }
+        .stats-number { font-size: 2rem; font-weight: bold; display: block; }
+        .empty-state { text-align: center; color: #64748b; padding: 2rem; font-style: italic; }
+        .search-section { margin-bottom: 1rem; }
+        .search-input { margin-bottom: 0; }
+        @media (max-width: 768px) { .main-content { grid-template-columns: 1fr; gap: 1rem; padding: 1rem; } .header h1 { font-size: 2rem; } .header { padding: 1.5rem; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header 和 Stats 區塊不變 -->
+        <div class="header">
+            <h1>📚 我的英文學習記錄</h1>
+            <p>記錄每天學習的單字和例句，建立專屬的英語學習庫</p>
+        </div>
+        <div class="stats">
+            <span class="stats-number" id="wordCount">0</span>
+            <span>個單字已學習</span>
+        </div>
+
+        <div class="main-content">
+            <section class="input-section">
+                <h2>➕ 新增單字</h2>
+                <form id="wordForm">
+                    <!-- ... 其他表單欄位不變 ... -->
+                     <div class="form-group">
+                        <label for="word">英文單字：</label>
+                        <input type="text" id="word" required placeholder="請輸入英文單字">
+                    </div>
+                    <div class="form-group">
+                        <label for="pos">詞性 (Part of Speech)：</label>
+                        <select id="pos" required>
+                            <option value="n.">名詞 (Noun)</option>
+                            <option value="v.">動詞 (Verb)</option>
+                            <option value="adj.">形容詞 (Adjective)</option>
+                            <option value="adv.">副詞 (Adverb)</option>
+                            <option value="phr.">片語 (Phrase)</option>
+                            <option value="other">其他 (Other)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="meaning">中文意思：</label>
+                        <input type="text" id="meaning" required placeholder="請輸入中文意思">
+                    </div>
+                    <div class="form-group">
+                        <label for="tags">主題標籤 (選填)：</label>
+                        <!-- 【HTML 修改】將 input 與 datalist 連結 -->
+                        <input type="text" id="tags" placeholder="選擇或輸入新標籤，用逗號分隔" list="tag-suggestions">
+                        <datalist id="tag-suggestions">
+                            <!-- 選項會由 JS 動態生成 -->
+                        </datalist>
+                        <div class="tags-input-container">請用逗號 "," 分隔多個標籤</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="example">例句 (選填)：</label>
+                        <textarea id="example" placeholder="請輸入英文例句"></textarea>
+                    </div>
+                    <button type="submit" class="btn">新增單字</button>
+                </form>
+            </section>
+            
+            <section class="words-list">
+                 <!-- ... words-list 區塊的 HTML 結構不變 ... -->
+                 <div class="view-toggle">
+                    <button id="viewAllBtn" class="active">📚 全部單字</button>
+                    <button id="viewReviewBtn">🔥 今日複習 <span id="reviewCountBadge"></span></button>
+                </div>
+                <div id="tagFilters" class="tag-filters"></div>
+                <div class="search-section">
+                    <input type="text" id="searchInput" class="search-input" placeholder="🔍 搜尋單字或意思...">
+                </div>
+                <div id="wordsList"></div>
+            </section>
+        </div>
+    </div>
+
+    <script>
+        class EnglishLearningTracker {
+            constructor() {
+                // ... constructor 內部屬性不變 ...
+                this.srsIntervals = [1, 3, 7, 14, 30, 90];
+                this.isReviewMode = false;
+                this.activeTag = null;
+                this.words = this.loadWords();
+                this.init();
+            }
+
+            init() {
+                this.bindEvents();
+                this.renderTagFilters();
+                this.renderTagDatalist(); // 【JS 新增】初始化時渲染建議列表
+                this.renderWords();
+                this.updateStats();
+                this.updateReviewBadge();
+            }
+
+            // bindEvents 和 toggleView 方法不變
+            bindEvents() {
+                document.getElementById('wordForm').addEventListener('submit', (e) => { e.preventDefault(); this.addWord(); });
+                document.getElementById('searchInput').addEventListener('input', () => this.renderWords());
+                document.getElementById('viewAllBtn').addEventListener('click', () => this.toggleView(false));
+                document.getElementById('viewReviewBtn').addEventListener('click', () => this.toggleView(true));
+                document.getElementById('tagFilters').addEventListener('click', (e) => {
+                    if (e.target.matches('.tag-filter-btn')) {
+                        const tag = e.target.dataset.tag === 'all' ? null : e.target.dataset.tag;
+                        this.activeTag = this.activeTag === tag ? null : tag;
+                        this.renderTagFilters();
+                        this.renderWords();
+                    }
+                });
+                document.getElementById('wordsList').addEventListener('click', (e) => {
+                    const target = e.target;
+                    const wordItem = target.closest('.word-item');
+                    if (!wordItem) return;
+                    const id = parseInt(wordItem.dataset.itemId);
+                    if (target.matches('.btn-delete')) { this.deleteWord(id); return; }
+                    if (target.closest('.btn-speak')) { this.speak(target.closest('.btn-speak').dataset.word); return; }
+                    if (this.isReviewMode) {
+                        if (target.matches('.btn-show-answer')) wordItem.classList.add('is-revealed');
+                        if (target.matches('.btn-forgot')) this.handleReview(id, false);
+                        if (target.matches('.btn-remembered')) this.handleReview(id, true);
+                    } else {
+                        wordItem.classList.toggle('is-revealed');
+                    }
+                });
+            }
+            toggleView(isReview) {
+                this.isReviewMode = isReview;
+                this.activeTag = null;
+                document.getElementById('searchInput').value = '';
+                document.getElementById('viewAllBtn').classList.toggle('active', !isReview);
+                document.getElementById('viewReviewBtn').classList.toggle('active', isReview);
+                document.getElementById('searchInput').style.display = isReview ? 'none' : 'block';
+                document.getElementById('tagFilters').style.display = isReview ? 'none' : 'flex';
+                this.renderTagFilters();
+                this.renderWords();
+            }
+
+            // 【JS 修改】在 addWord 後更新建議列表
+            addWord() {
+                // ... addWord 的內部邏輯不變 ...
+                const word = document.getElementById('word').value.trim();
+                const pos = document.getElementById('pos').value;
+                const meaning = document.getElementById('meaning').value.trim();
+                const example = document.getElementById('example').value.trim();
+                const tagsInput = document.getElementById('tags').value.trim();
+                const tags = tagsInput ? tagsInput.split(',').map(tag => tag.trim()).filter(tag => tag) : [];
+                if (!word || !meaning) { alert('請務必填寫「英文單字」和「中文意思」欄位'); return; }
+                const newWord = { id: Date.now(), word, pos, meaning, example, tags, date: new Date().toLocaleDateString('zh-TW'), reviewCount: 0, nextReviewDate: this.getFutureDate(1).toISOString() };
+                this.words.unshift(newWord);
+                this.saveWords();
+                this.renderTagFilters();
+                this.renderTagDatalist(); // 更新建議列表
+                this.renderWords();
+                this.updateStats();
+                this.updateReviewBadge();
+                this.clearForm();
+                this.showSuccessMessage();
+            }
+
+            // 【JS 修改】在 deleteWord 後更新建議列表
+            deleteWord(id) {
+                // ... deleteWord 的內部邏輯不變 ...
+                const wordItem = document.querySelector(`[data-item-id="${id}"]`);
+                if (wordItem) {
+                    wordItem.classList.add('deleting');
+                    setTimeout(() => {
+                        this.words = this.words.filter(word => word.id !== id);
+                        this.saveWords();
+                        this.renderTagFilters();
+                        this.renderTagDatalist(); // 更新建議列表
+                        this.renderWords();
+                        this.updateStats();
+                        this.updateReviewBadge();
+                    }, 300);
+                }
+            }
+            
+            // renderWords, renderTagFilters, createWordCardHTML 等方法不變
+            renderWords() {
+                const wordsList = document.getElementById('wordsList');
+                let wordsToRender = this.words;
+                if (this.isReviewMode) {
+                    const today = new Date(); today.setHours(23, 59, 59, 999);
+                    wordsToRender = this.words.filter(word => new Date(word.nextReviewDate) <= today);
+                } else {
+                    if (this.activeTag) { wordsToRender = wordsToRender.filter(word => word.tags && word.tags.includes(this.activeTag)); }
+                    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+                    if (searchTerm) { wordsToRender = wordsToRender.filter(word => word.word.toLowerCase().includes(searchTerm) || word.meaning.toLowerCase().includes(searchTerm) || word.example.toLowerCase().includes(searchTerm)); }
+                }
+                if (wordsToRender.length === 0) { wordsList.innerHTML = this.isReviewMode ? '<div class="empty-state">太棒了！今天沒有需要複習的單字 🎉</div>' : (this.words.length > 0 ? '<div class="empty-state">沒有找到符合條件的單字</div>' : '<div class="empty-state">還沒有學習記錄，開始新增您的第一個單字吧！</div>'); return; }
+                wordsList.innerHTML = wordsToRender.map(word => this.isReviewMode ? this.createReviewCardHTML(word) : this.createWordCardHTML(word)).join('');
+            }
+            renderTagFilters() {
+                const allTags = new Set(this.words.flatMap(word => word.tags || []));
+                const filtersContainer = document.getElementById('tagFilters');
+                let html = `<button class="tag-filter-btn ${!this.activeTag ? 'active' : ''}" data-tag="all">全部</button>`;
+                allTags.forEach(tag => { html += `<button class="tag-filter-btn ${this.activeTag === tag ? 'active' : ''}" data-tag="${tag}">${tag}</button>`; });
+                filtersContainer.innerHTML = html;
+            }
+             createWordCardHTML(word) {
+                const tagsHTML = (word.tags && word.tags.length > 0) ? `<div class="tags-container">${word.tags.map(tag => `<span class="tag-badge">${tag}</span>`).join('')}</div>` : '';
+                return `
+                    <article class="word-item" data-item-id="${word.id}">
+                        <div class="word-header">
+                            <div class="word-text-container">
+                                <button class="btn-icon btn-speak" data-word="${word.word}" aria-label="朗讀單字">🔊</button>
+                                <span class="word-text">${word.word}</span>
+                                <span class="pos-badge">${word.pos}</span>
+                            </div>
+                            <div>
+                                <span class="date-text">${new Date(word.nextReviewDate).toLocaleDateString()} 複習</span>
+                                <button class="btn btn-delete" data-id="${word.id}">刪除</button>
+                            </div>
+                        </div>
+                        <div class="details">
+                            <div class="meaning">${word.meaning}</div>
+                            <div class="example">${word.example}</div>
+                            ${tagsHTML} 
+                        </div>
+                    </article>`;
+            }
+
+            // 【JS 新增】渲染標籤建議列表的方法
+            renderTagDatalist() {
+                const datalist = document.getElementById('tag-suggestions');
+                if (!datalist) return; // 防禦性程式碼
+
+                // 使用與 renderTagFilters 相同的邏輯獲取所有唯一標籤
+                const allTags = new Set(this.words.flatMap(word => word.tags || []));
+                
+                // 將 Set 轉換為 <option> 元素的 HTML 字串
+                datalist.innerHTML = [...allTags].map(tag => `<option value="${tag}"></option>`).join('');
+            }
+
+            // ... 其他所有輔助方法保持不變 ...
+            handleReview(id, remembered) {
+                const wordIndex = this.words.findIndex(w => w.id === id);
+                if (wordIndex === -1) return;
+                let word = this.words[wordIndex];
+                if (remembered) {
+                    word.reviewCount++;
+                    const intervalIndex = Math.min(word.reviewCount - 1, this.srsIntervals.length - 1);
+                    const intervalDays = this.srsIntervals[intervalIndex];
+                    word.nextReviewDate = this.getFutureDate(intervalDays).toISOString();
+                } else {
+                    word.reviewCount = 0;
+                    word.nextReviewDate = this.getFutureDate(1).toISOString();
+                }
+                this.saveWords();
+                this.renderWords();
+                this.updateReviewBadge();
+            }
+            createReviewCardHTML(word) {
+                const tagsHTML = (word.tags && word.tags.length > 0) ? `<div class="tags-container">${word.tags.map(tag => `<span class="tag-badge">${tag}</span>`).join('')}</div>` : '';
+                return `
+                    <article class="word-item review-card" data-item-id="${word.id}">
+                        <div class="word-header">
+                            <div class="word-text-container">
+                                <button class="btn-icon btn-speak" data-word="${word.word}" aria-label="朗讀單字">🔊</button>
+                                <span class="word-text">${word.word}</span>
+                                <span class="pos-badge">${word.pos}</span>
+                            </div>
+                        </div>
+                        <button class="btn btn-show-answer">顯示答案</button>
+                        <div class="answer">
+                            <div class="meaning">${word.meaning}</div>
+                            <div class="example">${word.example}</div>
+                            ${tagsHTML}
+                            <div class="review-actions">
+                                <button class="btn btn-forgot">我忘了</button>
+                                <button class="btn btn-remembered">我記得</button>
+                            </div>
+                        </div>
+                    </article>`;
+            }
+            updateReviewBadge() {
+                const today = new Date();
+                today.setHours(23, 59, 59, 999);
+                const reviewCount = this.words.filter(word => new Date(word.nextReviewDate) <= today).length;
+                const badge = document.getElementById('reviewCountBadge');
+                if (reviewCount > 0) { badge.textContent = reviewCount; badge.style.display = 'inline'; } else { badge.style.display = 'none'; }
+            }
+            getFutureDate(days) { const date = new Date(); date.setDate(date.getDate() + days); date.setHours(0, 0, 0, 0); return date; }
+            speak(text) { const utterance = new SpeechSynthesisUtterance(text); utterance.lang = 'en-US'; window.speechSynthesis.speak(utterance); }
+            updateStats() { document.getElementById('wordCount').textContent = this.words.length; }
+            clearForm() { document.getElementById('wordForm').reset(); }
+            showSuccessMessage() { const originalButton = document.querySelector('#wordForm .btn'); const originalText = originalButton.textContent; originalButton.textContent = '✅ 新增成功！'; setTimeout(() => { originalButton.textContent = originalText; }, 2000); }
+            loadWords() { const wordsJson = localStorage.getItem('englishLearningWords'); return wordsJson ? JSON.parse(wordsJson) : []; }
+            saveWords() { localStorage.setItem('englishLearningWords', JSON.stringify(this.words)); }
+        }
+        
+        const tracker = new EnglishLearningTracker();
+    </script>
+</body>
+</html>
